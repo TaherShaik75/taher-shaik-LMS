@@ -8,6 +8,8 @@
     "start": "node -r dotenv/config backend/server.js",
     "dev:frontend": "vite frontend",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dev":"vite",
+    "build":"vite build",
     "predeploy":"npm run build",
     "deploy":"gh-pages -d dist"
   },
@@ -36,6 +38,7 @@
   "author": "AI Assistant & User",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.12.12",
     "vite": "^6.3.5"
   }
 }
