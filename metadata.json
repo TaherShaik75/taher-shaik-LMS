@@ -1,0 +1,4 @@
+{
+  "name": "SkillShareHub",
+  "description": "A skill marketplace platform where users can create, explore, and enroll in skill-based courses. Built with Node.js, Express, and a vanilla JS frontend, aiming for MERN-like architecture."
+}

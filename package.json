@@ -1,0 +1,41 @@
+{
+  "name": "skillsharehub",
+  "homepage": "https://TaherShaik75.github.io/taher-shaik-LMS/",
+  "version": "1.0.0",
+  "description": "A full-stack application where users can create, explore, and enroll in skill-based courses.",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node -r dotenv/config backend/server.js",
+    "dev:frontend": "vite frontend",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "predeploy":"npm run build",
+    "deploy":"gh-pages -d dist"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.6.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "gh-pages": "^6.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.15.0",
+    "multer": "^2.0.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "streamifier": "^0.1.1"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "mongodb",
+    "react-concepts",
+    "javascript",
+    "skill-marketplace"
+  ],
+  "author": "AI Assistant & User",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}
