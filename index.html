@@ -1,22 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillShareHub Project Root</title>
 <script type="importmap">
-{
-  "imports": {
-    "path": "https://esm.sh/path@^0.12.7",
-    "vite": "https://esm.sh/vite@^6.3.5"
-  }
-}
-</script>
-</head>
-<body>
-    <h1>SkillShareHub Project Root</h1>
-    <p>This is the root index.html. The main application is served from the 'frontend' directory.</p>
-    <p>If you are developing, ensure your Vite dev server is running and access it (usually at a different port, e.g., 5173, and serving frontend/index.html).</p>
-    <p>If this is a deployed backend, API endpoints are typically under /api/...</p>
-</body>
-</html>
+    {
+      "imports": {
+        "path": "https://esm.sh/path@^0.12.7",
+        "vite": "https://esm.sh/vite@^6.3.5"
+      }
+    }
+    </script>
+    <!-- 
+    This is the root-level index.html file.
+    
+    If you are developing the frontend application, please note that
+    the Vite development server and build process use 'frontend/index.html' 
+    as the main entry point, as configured in your 'package.json' scripts.
+    
+    This root-level 'index.html' file is likely not used by the Vite build 
+    process for your frontend application. It previously contained an 
+    importmap for 'vite' and 'path' which is not the correct way to 
+    configure or use Vite, potentially leading to errors or confusion. 
+    That script has been removed.
+    -->
+    
