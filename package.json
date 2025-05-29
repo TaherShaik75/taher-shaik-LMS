@@ -1,4 +1,3 @@
-
 {
   "name": "skillsharehub",
   "homepage": "https://TaherShaik75.github.io/taher-shaik-LMS/",
@@ -6,11 +5,11 @@
   "description": "A full-stack application where users can create, explore, and enroll in skill-based courses.",
   "main": "backend/server.js",
   "scripts": {
-    "start": "NODE_ENV=production node backend/server.js",
+    "start": "NODE_ENV=production node -r dotenv/config backend/server.js",
     "dev:frontend": "vite frontend",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev":"vite",
-    "build":"NODE_PATH=./node_modules npx vite build",
+    "build":"vite build",
     "vercel-build": "npm run build",
     "preview": "vite preview",
     "predeploy":"npm run build",
@@ -26,11 +25,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
     "multer": "^2.0.0",
-    "multer-storage-cloudinary": "^4.0.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "streamifier": "^0.1.1",
-    "vite": "^6.3.5"
+    "streamifier": "^0.1.1"
   },
   "keywords": [
     "node",
@@ -43,6 +40,7 @@
   "author": "AI Assistant & User",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.12.12"
+    "@types/node": "^20.12.12",
+    "vite": "^6.3.5"
   }
 }
