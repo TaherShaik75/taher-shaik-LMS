@@ -8,6 +8,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
+const path = require('path'); // Added for serving static files
 
 const connectDB = require('./db');
 const User = require('./models/User');
@@ -107,6 +108,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
     console.warn("Google OAuth environment variables not fully set.");
 }
 
+// Serve static files from the frontend build directory
+// The path is relative from 'backend/server.js' to the 'dist' folder in the project root
+app.use(express.static(path.join(__dirname, '../dist')));
+
+
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -158,7 +164,9 @@ app.get('/api/auth/google/callback', passport.authenticate('google', { failureRe
     const user = req.user;
     const tokenPayload = { userId: user._id.toString(), name: user.name, email: user.email, role: user.role };
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
-    res.redirect(`${FRONTEND_URL}#oauth_callback?token=${token}&user=${encodeURIComponent(JSON.stringify(tokenPayload))}`);
+    // For production-like local serving, redirect to root path of the server
+    const redirectBase = process.env.NODE_ENV === 'production' ? '/' : FRONTEND_URL;
+    res.redirect(`${redirectBase}#oauth_callback?token=${token}&user=${encodeURIComponent(JSON.stringify(tokenPayload))}`);
 });
 
 app.get('/api/dashboard/enrolled-courses', authenticateToken, async (req, res) => {
@@ -899,5 +907,16 @@ app.delete('/api/admin/reviews/:reviewId', authenticateToken, checkRole(['admin'
     }
 });
 
+// The "catchall" handler: for any request that doesn't match an API route,
+// send back the main index.html file from the frontend build.
+app.get('*', (req, res) => {
+  // Check if the request is not an API call
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  } else {
+    // If it's an API route that wasn't matched, send a 404
+    res.status(404).json({ message: 'API endpoint not found' });
+  }
+});
 
 app.listen(PORT, () => { console.log(`Backend server on http://localhost:${PORT}`); console.log(`Ensure .env vars set.`); });

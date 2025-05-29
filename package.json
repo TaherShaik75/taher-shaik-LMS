@@ -5,11 +5,12 @@
   "description": "A full-stack application where users can create, explore, and enroll in skill-based courses.",
   "main": "backend/server.js",
   "scripts": {
-    "start": "node -r dotenv/config backend/server.js",
+    "start": "NODE_ENV=production node -r dotenv/config backend/server.js",
     "dev:frontend": "vite frontend",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev":"vite",
     "build":"vite build",
+    "preview": "vite preview",
     "predeploy":"npm run build",
     "deploy":"gh-pages -d dist"
   },
