@@ -1,4 +1,18 @@
 // backend/server.js
+console.log('[SERVER_LOG] Attempting to load server.js module...'); // NEW LOG
+console.log('[SERVER_LOG] NODE_ENV:', process.env.NODE_ENV); // NEW LOG
+console.log('[SERVER_LOG] PORT from env:', process.env.PORT); // NEW LOG
+console.log('[SERVER_LOG] MONGODB_URI from env (server.js check):', process.env.MONGODB_URI ? 'Exists' : 'MISSING or UNDEFINED'); // NEW LOG
+console.log('[SERVER_LOG] JWT_SECRET from env (server.js check):', process.env.JWT_SECRET ? 'Exists' : 'MISSING or UNDEFINED'); // NEW LOG
+console.log('[SERVER_LOG] FRONTEND_URL from env (server.js check):', process.env.FRONTEND_URL ? 'Exists' : 'MISSING or UNDEFINED'); // NEW LOG
+console.log('[SERVER_LOG] GOOGLE_CLIENT_ID from env (server.js check):', process.env.GOOGLE_CLIENT_ID ? 'Exists' : 'MISSING or UNDEFINED');
+console.log('[SERVER_LOG] GOOGLE_CLIENT_SECRET from env (server.js check):', process.env.GOOGLE_CLIENT_SECRET ? 'Exists' : 'MISSING or UNDEFINED');
+console.log('[SERVER_LOG] GOOGLE_CALLBACK_URL from env (server.js check):', process.env.GOOGLE_CALLBACK_URL ? 'Exists' : 'MISSING or UNDEFINED');
+console.log('[SERVER_LOG] CLOUDINARY_CLOUD_NAME from env (server.js check):', process.env.CLOUDINARY_CLOUD_NAME ? 'Exists' : 'MISSING or UNDEFINED');
+console.log('[SERVER_LOG] CLOUDINARY_API_KEY from env (server.js check):', process.env.CLOUDINARY_API_KEY ? 'Exists' : 'MISSING or UNDEFINED');
+console.log('[SERVER_LOG] CLOUDINARY_API_SECRET from env (server.js check):', process.env.CLOUDINARY_API_SECRET ? 'Exists' : 'MISSING or UNDEFINED');
+
+
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt =require('jsonwebtoken');
@@ -10,6 +24,8 @@ const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 const path = require('path'); // Added for serving static files
 
+console.log('[SERVER_LOG] Modules required successfully.');
+
 const connectDB = require('./db');
 const User = require('./models/User');
 const Course = require('./models/Course');
@@ -17,8 +33,18 @@ const Enrollment = require('./models/Enrollment');
 const Review = require('./models/Review');
 const Certificate = require('./models/Certificate'); 
 
+console.log('[SERVER_LOG] Attempting to connect to DB...');
+connectDB().then(() => {
+    console.log('[SERVER_LOG] DB connection attempt finished (check DB_LOG for status).');
+}).catch(err => {
+    console.error('[SERVER_LOG] CRITICAL DB connection error during initial call:', err.message, err.stack);
+    // For Vercel, maybe don't exit immediately to see if other logs can appear
+    // process.exit(1); 
+}); 
+
 const app = express();
-connectDB(); 
+console.log('[SERVER_LOG] Express app initialized.');
+
 
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
     cloudinary.config({
@@ -27,14 +53,20 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
         api_secret: process.env.CLOUDINARY_API_SECRET,
         secure: true,
     });
-    console.log('Cloudinary configured successfully.');
+    console.log('[SERVER_LOG] Cloudinary configured successfully.');
 } else {
-    console.warn('Cloudinary environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) are not fully set. File uploads to Cloudinary will fail.');
+    console.warn('[SERVER_LOG] Cloudinary environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) are not fully set. File uploads to Cloudinary will fail.');
 }
 
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-default-jwt-secret-key-change-me-in-env';
+if (JWT_SECRET === 'your-default-jwt-secret-key-change-me-in-env') {
+    console.warn('[SERVER_LOG] WARNING: JWT_SECRET is using the default insecure value. Set this in your Vercel environment variables!');
+}
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173/frontend/index.html';
+
+console.log(`[SERVER_LOG] Config: PORT=${PORT}, FRONTEND_URL=${FRONTEND_URL}`);
+
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage }); 
@@ -42,6 +74,7 @@ const upload = multer({ storage: storage });
 const streamUploadToCloudinary = (fileBuffer, folderName = 'skillsharehub_uploads', resourceType = 'auto') => {
     return new Promise((resolve, reject) => {
         if (!cloudinary.config().cloud_name) {
+            console.error('[SERVER_LOG] Cloudinary not configured during streamUpload call.');
             return reject(new Error('Cloudinary not configured.'));
         }
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -56,6 +89,7 @@ const streamUploadToCloudinary = (fileBuffer, folderName = 'skillsharehub_upload
 };
 
 const initializeAdminUser = async () => {
+    console.log('[SERVER_LOG] Initializing admin user check...');
     try {
         const adminEmail = 'admin@skillshare.hub';
         const existingAdmin = await User.findOne({ email: adminEmail });
@@ -63,20 +97,24 @@ const initializeAdminUser = async () => {
             const adminPassword = 'admin123';
             const newAdmin = new User({ name: 'Admin User', email: adminEmail, password: adminPassword, role: 'admin' });
             await newAdmin.save();
-            console.log(`Default admin user '${adminEmail}' initialized.`);
+            console.log(`[SERVER_LOG] Default admin user '${adminEmail}' initialized.`);
         } else {
-            console.log(`Admin user '${adminEmail}' already exists.`);
+            console.log(`[SERVER_LOG] Admin user '${adminEmail}' already exists.`);
         }
     } catch (err) {
-        console.error("Error initializing admin user:", err.message);
+        console.error("[SERVER_LOG] Error initializing admin user:", err.message);
     }
 };
 initializeAdminUser();
 
 app.use(cors());
+console.log('[SERVER_LOG] CORS middleware enabled.');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+console.log('[SERVER_LOG] JSON and URLencoded body parsers enabled.');
 app.use(passport.initialize());
+console.log('[SERVER_LOG] Passport initialized.');
+
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL) {
     passport.use(new GoogleStrategy({
@@ -86,6 +124,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
         scope: ['profile', 'email']
       },
       async (accessToken, refreshToken, profile, done) => {
+        console.log('[SERVER_LOG] Google OAuth callback invoked.');
         try {
           let user = await User.findOne({ googleId: profile.id });
           if (!user) {
@@ -100,17 +139,21 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
           }
           return done(null, user);
         } catch (error) {
+          console.error('[SERVER_LOG] Error in Google OAuth strategy:', error);
           return done(error, null);
         }
       }
     ));
+    console.log('[SERVER_LOG] Google OAuth strategy configured.');
 } else {
-    console.warn("Google OAuth environment variables not fully set.");
+    console.warn("[SERVER_LOG] Google OAuth environment variables (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL) not fully set. Google Sign-In will not work.");
 }
 
 // Serve static files from the frontend build directory
 // The path is relative from 'backend/server.js' to the 'dist' folder in the project root
-app.use(express.static(path.join(__dirname, '../dist')));
+const staticPath = path.join(__dirname, '../dist');
+console.log(`[SERVER_LOG] Serving static files from: ${staticPath}`);
+app.use(express.static(staticPath));
 
 
 const authenticateToken = (req, res, next) => {
@@ -118,17 +161,24 @@ const authenticateToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
     if (token == null) return res.sendStatus(401);
     jwt.verify(token, JWT_SECRET, (err, userPayload) => {
-        if (err) return res.sendStatus(403);
+        if (err) {
+            console.warn('[SERVER_LOG] JWT verification failed:', err.message);
+            return res.sendStatus(403);
+        }
         req.user = userPayload;
         next();
     });
 };
 const checkRole = (roles) => (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) return res.status(403).json({ message: `Access denied.` });
+    if (!req.user || !roles.includes(req.user.role)) {
+        console.warn(`[SERVER_LOG] Role check failed for user ${req.user?.email}. Required: ${roles}, User role: ${req.user?.role}`);
+        return res.status(403).json({ message: `Access denied.` });
+    }
     next();
 };
 
 app.post('/api/auth/signup', async (req, res) => {
+    console.log('[SERVER_LOG] POST /api/auth/signup request received.');
     try {
         const { name, email, password, role } = req.body;
         if (!name || !email || !password || !role) return res.status(400).json({ message: 'All fields are required.' });
@@ -141,10 +191,11 @@ app.post('/api/auth/signup', async (req, res) => {
     } catch (error) { 
         if (error.code === 11000) return res.status(400).json({ message: 'Email already in use.' });
         if (error.name === 'ValidationError') return res.status(400).json({ message: "Validation Error: " + error.message });
-        console.error("Signup Error:", error); res.status(500).json({ message: 'Server error.' }); 
+        console.error("[SERVER_LOG] Signup Error:", error); res.status(500).json({ message: 'Server error.' }); 
     }
 });
 app.post('/api/auth/login', async (req, res) => {
+    console.log('[SERVER_LOG] POST /api/auth/login request received.');
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
@@ -157,33 +208,45 @@ app.post('/api/auth/login', async (req, res) => {
         const tokenPayload = { userId: user._id.toString(), name: user.name, email: user.email, role: user.role };
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
         res.json({ message: 'Login successful!', token, user: tokenPayload });
-    } catch (error) { console.error("Login Error:", error); res.status(500).json({ message: 'Server error.' }); }
+    } catch (error) { console.error("[SERVER_LOG] Login Error:", error); res.status(500).json({ message: 'Server error.' }); }
 });
-app.get('/api/auth/google', (req,res,next)=>{ if(!process.env.GOOGLE_CLIENT_ID) return res.status(500).send('Google OAuth not configured.'); passport.authenticate('google',{scope:['profile','email'],session:false})(req,res,next);});
+app.get('/api/auth/google', (req,res,next)=>{ 
+    console.log('[SERVER_LOG] GET /api/auth/google request received.');
+    if(!process.env.GOOGLE_CLIENT_ID) {
+        console.error('[SERVER_LOG] Google OAuth not configured, client ID missing.');
+        return res.status(500).send('Google OAuth not configured.');
+    }
+    passport.authenticate('google',{scope:['profile','email'],session:false})(req,res,next);
+});
 app.get('/api/auth/google/callback', passport.authenticate('google', { failureRedirect: `${FRONTEND_URL}#login?oauth_error=true`, session: false }), (req, res) => {
+    console.log('[SERVER_LOG] GET /api/auth/google/callback request received.');
     const user = req.user;
     const tokenPayload = { userId: user._id.toString(), name: user.name, email: user.email, role: user.role };
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
-    // For production-like local serving, redirect to root path of the server
+    
     const redirectBase = process.env.NODE_ENV === 'production' ? '/' : FRONTEND_URL;
+    console.log(`[SERVER_LOG] OAuth successful. Redirecting to: ${redirectBase}#oauth_callback with token.`);
     res.redirect(`${redirectBase}#oauth_callback?token=${token}&user=${encodeURIComponent(JSON.stringify(tokenPayload))}`);
 });
 
 app.get('/api/dashboard/enrolled-courses', authenticateToken, async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/dashboard/enrolled-courses request received.');
     try {
         const enrollments = await Enrollment.find({ userId: req.user.userId }).populate({ path: 'courseId', select: 'title thumbnailUrl instructorName price rating' });
         const courses = enrollments.map(e => e.courseId ? ({ ...e.courseId.toObject(), id: e.courseId._id.toString(), progress: e.progress.percentage, enrollmentStatus: e.status }) : null).filter(Boolean);
         res.json(courses);
-    } catch (e) { console.error("Error enrolled-courses:", e); res.status(500).json({ message: e.message }); }
+    } catch (e) { console.error("[SERVER_LOG] Error enrolled-courses:", e); res.status(500).json({ message: e.message }); }
 });
 app.get('/api/dashboard/my-reviews', authenticateToken, async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/dashboard/my-reviews request received.');
     try {
         const userReviews = await Review.find({ userId: req.user.userId }).populate('courseId', 'title');
         const formattedReviews = userReviews.map(review => ({ reviewId: review._id.toString(), courseId: review.courseId._id.toString(), courseTitle: review.courseId.title, rating: review.rating, reviewText: review.reviewText, date: review.createdAt, isFlagged: review.isFlagged }));
         res.json(formattedReviews);
-    } catch (e) { console.error("Error my-reviews:", e); res.status(500).json({ message: e.message }); }
+    } catch (e) { console.error("[SERVER_LOG] Error my-reviews:", e); res.status(500).json({ message: e.message }); }
 });
 app.get('/api/dashboard/my-certificates', authenticateToken, async (req, res) => { 
+    console.log('[SERVER_LOG] GET /api/dashboard/my-certificates request received.');
     try {
         const userCertificates = await Certificate.find({userId: req.user.userId}).populate('courseId', 'title');
         const formattedCerts = userCertificates.map(cert => ({
@@ -195,10 +258,11 @@ app.get('/api/dashboard/my-certificates', authenticateToken, async (req, res) =>
             certificateUrl: cert.certificateUrl
         }));
         res.json(formattedCerts);
-    } catch(e){ console.error("Error my-certificates:", e); res.status(500).json({message: e.message}); }
+    } catch(e){ console.error("[SERVER_LOG] Error my-certificates:", e); res.status(500).json({message: e.message}); }
 });
 
 app.get('/api/courses', async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/courses request received with query:', req.query);
     try {
         const { query, category, price, instructorId } = req.query;
         const filter = {};
@@ -215,9 +279,10 @@ app.get('/api/courses', async (req, res) => {
         const coursesFound = await Course.find(filter).sort({ createdAt: -1 });
         const coursesWithFrontendId = coursesFound.map(course => ({ ...course.toObject(), id: course._id.toString(), instructor: course.instructorName }));
         res.json(coursesWithFrontendId);
-    } catch (e) { console.error("Error GET /api/courses:", e); res.status(500).json({ message: e.message }); }
+    } catch (e) { console.error("[SERVER_LOG] Error GET /api/courses:", e); res.status(500).json({ message: e.message }); }
 });
 app.get('/api/courses/:id', async (req, res) => {
+    console.log(`[SERVER_LOG] GET /api/courses/${req.params.id} request received.`);
     try {
         const course = await Course.findById(req.params.id);
         if (!course) return res.status(404).json({ message: 'Course not found' });
@@ -231,29 +296,30 @@ app.get('/api/courses/:id', async (req, res) => {
                     const enrollment = await Enrollment.findOne({ userId: decoded.userId, courseId: course._id });
                     if (enrollment) enrollmentData = { id: enrollment._id.toString(), status: enrollment.status, progress: enrollment.progress };
                 }
-            } catch (jwtError) { console.log("JWT error on public course view (ignorable):", jwtError.message); }
+            } catch (jwtError) { console.log("[SERVER_LOG] JWT error on public course view (ignorable):", jwtError.message); }
         }
         const courseReviews = await Review.find({ courseId: req.params.id }).populate('userId', 'name').sort({ createdAt: -1 });
         const formattedReviews = courseReviews.map(r => ({ ...r.toObject(), id:r._id.toString(), reviewerName: r.userId?.name || 'Anonymous', isFlagged: r.isFlagged }));
         res.json({ ...course.toObject(), id: course._id.toString(), reviews: formattedReviews, enrollment: enrollmentData });
     } catch (e) { 
         if (e.kind === 'ObjectId') return res.status(404).json({ message: 'Course not found.' });
-        console.error("Error GET /api/courses/:id:", e); 
+        console.error("[SERVER_LOG] Error GET /api/courses/:id:", e); 
         res.status(500).json({ message: e.message }); 
     }
 });
 
 async function processCourseContentFiles(sectionsDataParam, filesFromRequest) {
+    console.log('[SERVER_LOG] processCourseContentFiles called.');
     if (!filesFromRequest || filesFromRequest.length === 0) return sectionsDataParam;
     const sectionsData = JSON.parse(JSON.stringify(sectionsDataParam));
     for (let sIdx = 0; sIdx < sectionsData.length; sIdx++) {
         if (sectionsData[sIdx].lessons) for (let lIdx = 0; lIdx < sectionsData[sIdx].lessons.length; lIdx++) {
             const lesson = sectionsData[sIdx].lessons[lIdx];
             const videoFile = filesFromRequest.find(f => f.fieldname === `lesson_s${sIdx}_l${lIdx}_videoFile`);
-            if (videoFile) try { lesson.videoUrl = (await streamUploadToCloudinary(videoFile.buffer, 'course_content/lesson_videos', 'video')).secure_url; } catch (e) { console.error(`Upload Error (Video S${sIdx}L${lIdx}):`, e.message); }
+            if (videoFile) try { lesson.videoUrl = (await streamUploadToCloudinary(videoFile.buffer, 'course_content/lesson_videos', 'video')).secure_url; console.log(`[SERVER_LOG] Uploaded video for S${sIdx}L${lIdx}`); } catch (e) { console.error(`[SERVER_LOG] Upload Error (Video S${sIdx}L${lIdx}):`, e.message); }
             if (lesson.resources) for (let rIdx = 0; rIdx < lesson.resources.length; rIdx++) {
                 const resourceFile = filesFromRequest.find(f => f.fieldname === `resource_s${sIdx}_l${lIdx}_r${rIdx}_file`);
-                if (resourceFile) try { lesson.resources[rIdx].url = (await streamUploadToCloudinary(resourceFile.buffer, 'course_content/lesson_resources')).secure_url; } catch (e) { console.error(`Upload Error (Resource S${sIdx}L${lIdx}R${rIdx}):`, e.message); }
+                if (resourceFile) try { lesson.resources[rIdx].url = (await streamUploadToCloudinary(resourceFile.buffer, 'course_content/lesson_resources')).secure_url; console.log(`[SERVER_LOG] Uploaded resource for S${sIdx}L${lIdx}R${rIdx}`);} catch (e) { console.error(`[SERVER_LOG] Upload Error (Resource S${sIdx}L${lIdx}R${rIdx}):`, e.message); }
             }
         }
     }
@@ -261,13 +327,14 @@ async function processCourseContentFiles(sectionsDataParam, filesFromRequest) {
 }
 
 app.post('/api/courses', authenticateToken, checkRole(['instructor', 'admin']), upload.any(), async (req, res) => {
+    console.log('[SERVER_LOG] POST /api/courses request received.');
     try {
         const { title, description, category, price, tags } = req.body;
         let sectionsData = [];
         if (!title || !description || !category) return res.status(400).json({ message: 'Title, description, and category are required.' });
         if (req.body.sections) {
             try { sectionsData = JSON.parse(req.body.sections); }
-            catch (parseError) { console.error("Parse Error Sections (Create):", parseError); return res.status(400).json({ message: 'Invalid sections data format.' }); }
+            catch (parseError) { console.error("[SERVER_LOG] Parse Error Sections (Create):", parseError); return res.status(400).json({ message: 'Invalid sections data format.' }); }
         }
         let thumbnailUrl = '';
         const thumbnailImageFile = req.files ? req.files.find(f => f.fieldname === 'thumbnailImage') : null;
@@ -275,7 +342,8 @@ app.post('/api/courses', authenticateToken, checkRole(['instructor', 'admin']), 
             try {
                 const result = await streamUploadToCloudinary(thumbnailImageFile.buffer, 'course_thumbnails');
                 thumbnailUrl = result.secure_url;
-            } catch (uploadError) { console.error("Cloudinary Upload Error (Thumbnail):", uploadError.message); }
+                 console.log('[SERVER_LOG] Course thumbnail uploaded to Cloudinary.');
+            } catch (uploadError) { console.error("[SERVER_LOG] Cloudinary Upload Error (Thumbnail):", uploadError.message); }
         }
         sectionsData = await processCourseContentFiles(sectionsData, req.files);
         const newCourseData = {
@@ -287,12 +355,13 @@ app.post('/api/courses', authenticateToken, checkRole(['instructor', 'admin']), 
         const newCourse = await Course.create(newCourseData);
         res.status(201).json({...newCourse.toObject(), id: newCourse._id.toString()});
     } catch (error) {
-        console.error("Error creating course:", error);
+        console.error("[SERVER_LOG] Error creating course:", error);
         if (error.name === 'ValidationError') return res.status(400).json({ message: "Validation Error: " + Object.values(error.errors).map(val => val.message).join(', ') });
         res.status(500).json({ message: "Failed to create course." });
     }
 });
 app.put('/api/courses/:id', authenticateToken, checkRole(['instructor', 'admin']), upload.any(), async (req, res) => {
+    console.log(`[SERVER_LOG] PUT /api/courses/${req.params.id} request received.`);
     try {
         const courseId = req.params.id;
         const { title, description, category, price, tags } = req.body;
@@ -304,7 +373,7 @@ app.put('/api/courses/:id', authenticateToken, checkRole(['instructor', 'admin']
         }
         if (req.body.sections) {
             try { sectionsData = JSON.parse(req.body.sections); }
-            catch (parseError) { console.error("Parse Error Sections (Edit):", parseError); return res.status(400).json({ message: 'Invalid sections data format for update.' }); }
+            catch (parseError) { console.error("[SERVER_LOG] Parse Error Sections (Edit):", parseError); return res.status(400).json({ message: 'Invalid sections data format for update.' }); }
         } else {
             sectionsData = course.sections; 
         }
@@ -314,7 +383,8 @@ app.put('/api/courses/:id', authenticateToken, checkRole(['instructor', 'admin']
             try {
                 const result = await streamUploadToCloudinary(thumbnailImageFile.buffer, 'course_thumbnails');
                 thumbnailUrl = result.secure_url;
-            } catch (uploadError) { console.error(`Cloudinary Upload Error (Thumbnail Update Course ${courseId}):`, uploadError.message); }
+                console.log(`[SERVER_LOG] Course thumbnail updated on Cloudinary for course ${courseId}.`);
+            } catch (uploadError) { console.error(`[SERVER_LOG] Cloudinary Upload Error (Thumbnail Update Course ${courseId}):`, uploadError.message); }
         }
         sectionsData = await processCourseContentFiles(sectionsData, req.files); 
         course.title = title || course.title;
@@ -327,13 +397,14 @@ app.put('/api/courses/:id', authenticateToken, checkRole(['instructor', 'admin']
         const updatedCourse = await course.save();
         res.json({...updatedCourse.toObject(), id: updatedCourse._id.toString()});
     } catch (error) {
-        console.error("Error updating course:", error);
+        console.error("[SERVER_LOG] Error updating course:", error);
         if (error.name === 'ValidationError') return res.status(400).json({ message: "Validation Error: " + Object.values(error.errors).map(val => val.message).join(', ') });
         if (error.kind === 'ObjectId') return res.status(404).json({ message: 'Course not found (invalid ID format for update)' });
         res.status(500).json({ message: "Failed to update course." });
     }
 });
 app.post('/api/courses/:courseId/reviews', authenticateToken, async (req, res) => {
+    console.log(`[SERVER_LOG] POST /api/courses/${req.params.courseId}/reviews request received.`);
     try {
         const { courseId } = req.params;
         const { rating, reviewText } = req.body;
@@ -350,13 +421,14 @@ app.post('/api/courses/:courseId/reviews', authenticateToken, async (req, res) =
         await course.save();
         res.status(201).json({ ...newReview.toObject(), id: newReview._id.toString(), isFlagged: newReview.isFlagged});
     } catch (error) {
-        console.error("Error submitting review:", error);
+        console.error("[SERVER_LOG] Error submitting review:", error);
         if (error.name === 'ValidationError') return res.status(400).json({ message: "Validation Error: " + Object.values(error.errors).map(val => val.message).join(', ') });
         res.status(500).json({ message: "Failed to submit review." });
     }
 });
 
 app.put('/api/courses/:courseId/reviews/:reviewId/toggle-flag', authenticateToken, async (req, res) => {
+    console.log(`[SERVER_LOG] PUT /api/courses/${req.params.courseId}/reviews/${req.params.reviewId}/toggle-flag request received.`);
     try {
         const { courseId, reviewId } = req.params;
         const userId = req.user.userId;
@@ -375,13 +447,14 @@ app.put('/api/courses/:courseId/reviews/:reviewId/toggle-flag', authenticateToke
         await review.save();
         res.json({ message: `Review ${review.isFlagged ? 'flagged' : 'unflagged'} successfully.`, review });
     } catch (error) {
-        console.error("Error toggling review flag:", error);
+        console.error("[SERVER_LOG] Error toggling review flag:", error);
         res.status(500).json({ message: 'Failed to update review flag status.' });
     }
 });
 
 
 app.post('/api/enrollments', authenticateToken, async (req, res) => {
+    console.log('[SERVER_LOG] POST /api/enrollments request received.');
     try {
         const { courseId } = req.body;
         const userId = req.user.userId;
@@ -420,7 +493,7 @@ app.post('/api/enrollments', authenticateToken, async (req, res) => {
         res.status(201).json({ message: responseMessage, enrollment: {...newEnrollment.toObject(), id: newEnrollment._id.toString()} });
 
     } catch (e) { 
-        console.error("Error in /api/enrollments:", e);
+        console.error("[SERVER_LOG] Error in /api/enrollments:", e);
         if (e.code === 11000) { 
              return res.status(409).json({ message: 'Enrollment conflict. You might already be enrolled.' });
         }
@@ -429,6 +502,7 @@ app.post('/api/enrollments', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/enrollments/:enrollmentId/confirm-payment', authenticateToken, async (req, res) => {
+    console.log(`[SERVER_LOG] PUT /api/enrollments/${req.params.enrollmentId}/confirm-payment request received.`);
     try {
         const { enrollmentId } = req.params;
         const userId = req.user.userId;
@@ -453,7 +527,7 @@ app.put('/api/enrollments/:enrollmentId/confirm-payment', authenticateToken, asy
             const existingCert = await Certificate.findOne({userId, courseId: enrollment.courseId});
             if(!existingCert) {
                 await Certificate.create({ userId, courseId: enrollment.courseId, certificateUrl: `/#mock-certificate/${enrollment.courseId}/${userId}` });
-                console.log(`Mock certificate created for user ${userId}, course ${enrollment.courseId} (payment confirmation).`);
+                console.log(`[SERVER_LOG] Mock certificate created for user ${userId}, course ${enrollment.courseId} (payment confirmation).`);
             }
         }
         
@@ -461,13 +535,14 @@ app.put('/api/enrollments/:enrollmentId/confirm-payment', authenticateToken, asy
         res.json({ message: 'Payment confirmed. Enrollment successful!', enrollment: {...enrollment.toObject(), id: enrollment._id.toString()} });
 
     } catch (e) {
-        console.error("Error confirming payment:", e);
+        console.error("[SERVER_LOG] Error confirming payment:", e);
         res.status(500).json({ message: e.message || "Failed to confirm payment."});
     }
 });
 
 
 app.post('/api/enrollments/:enrollmentId/progress', authenticateToken, async (req, res) => {
+    console.log(`[SERVER_LOG] POST /api/enrollments/${req.params.enrollmentId}/progress request received.`);
     try {
         const { enrollmentId } = req.params;
         const { itemId, completed } = req.body; 
@@ -506,15 +581,16 @@ app.post('/api/enrollments/:enrollmentId/progress', authenticateToken, async (re
             const existingCert = await Certificate.findOne({userId, courseId: course._id});
             if(!existingCert) {
                 await Certificate.create({ userId, courseId: course._id, certificateUrl: `/#mock-certificate/${course._id}/${userId}` }); 
-                console.log(`Mock certificate created for user ${userId}, course ${course.title} (progress update)`);
+                console.log(`[SERVER_LOG] Mock certificate created for user ${userId}, course ${course.title} (progress update)`);
             }
         }
         await enrollment.save();
         res.json({ message: 'Progress updated.', enrollment: {...enrollment.toObject(), id: enrollment._id.toString()} });
-    } catch (e) { console.error("Error updating progress:", e); res.status(500).json({ message: e.message }); }
+    } catch (e) { console.error("[SERVER_LOG] Error updating progress:", e); res.status(500).json({ message: e.message }); }
 });
 
 app.post('/api/quizzes/submit', authenticateToken, async (req, res) => {
+    console.log('[SERVER_LOG] POST /api/quizzes/submit request received.');
     try {
         const { courseId, sectionIndex, lessonIndex, enrollmentId, answers } = req.body;
         const userId = req.user.userId;
@@ -530,7 +606,7 @@ app.post('/api/quizzes/submit', authenticateToken, async (req, res) => {
         if (!course || !course.sections || !course.sections[sectionIndex] || !course.sections[sectionIndex].lessons || !course.sections[sectionIndex].lessons[lessonIndex] || !course.sections[sectionIndex].lessons[lessonIndex].quiz) {
             return res.status(404).json({ message: 'Quiz, lesson, or section not found.' });
         }
-        console.log(`Quiz submitted: Course ${courseId}, S${sectionIndex}L${lessonIndex}, User: ${userId}`);
+        console.log(`[SERVER_LOG] Quiz submitted: Course ${courseId}, S${sectionIndex}L${lessonIndex}, User: ${userId}`);
         const quizItemId = `s${sectionIndex}_l${lessonIndex}_quiz`;
         
         if (!enrollment.progress) enrollment.progress = { completedItems: [], percentage: 0 };
@@ -549,7 +625,7 @@ app.post('/api/quizzes/submit', authenticateToken, async (req, res) => {
             if(!existingCert) {
                 await Certificate.create({ userId, courseId: course._id, certificateUrl: `/#mock-certificate/${course._id}/${userId}`});
                 certificateMessage = " Congrats! Course completed & certificate earned!";
-                console.log(`Mock certificate created for ${userId}, course ${course.title} (quiz submission).`);
+                console.log(`[SERVER_LOG] Mock certificate created for ${userId}, course ${course.title} (quiz submission).`);
             } else {
                  certificateMessage = " Congrats! Course completed! Certificate previously generated.";
             }
@@ -557,7 +633,7 @@ app.post('/api/quizzes/submit', authenticateToken, async (req, res) => {
         await enrollment.save();
         res.json({ score: 100, passed: true, message: `Quiz completed!${certificateMessage}`, enrollment: {...enrollment.toObject(), id: enrollment._id.toString()} });
     } catch (e) { 
-        console.error("Error submitting quiz:", e); 
+        console.error("[SERVER_LOG] Error submitting quiz:", e); 
         if (e.code === 11000 && e.keyPattern && e.keyPattern.userId && e.keyPattern.courseId) {
              return res.status(409).json({ message: 'Certificate already exists for this course completion.' });
         }
@@ -567,16 +643,18 @@ app.post('/api/quizzes/submit', authenticateToken, async (req, res) => {
 
 
 app.get('/api/instructor/courses', authenticateToken, checkRole(['instructor', 'admin']), async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/instructor/courses request received.');
     try {
         const instructorCourses = await Course.find({ instructor: req.user.userId }).sort({ createdAt: -1 });
         const coursesWithFrontendId = instructorCourses.map(course => ({ ...course.toObject(), id: course._id.toString(), instructor: course.instructorName }));
         res.json(coursesWithFrontendId);
     } catch (error) {
-        console.error("Error fetching instructor courses:", error);
+        console.error("[SERVER_LOG] Error fetching instructor courses:", error);
         res.status(500).json({ message: "Failed to fetch instructor courses." });
     }
 });
 app.get('/api/instructor/dashboard-summary', authenticateToken, checkRole(['instructor', 'admin']), async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/instructor/dashboard-summary request received.');
     try {
         const instructorId = req.user.userId;
         const myCourses = await Course.find({ instructor: instructorId });
@@ -593,13 +671,14 @@ app.get('/api/instructor/dashboard-summary', authenticateToken, checkRole(['inst
         const averageRating = validRatings.length > 0 ? (validRatings.reduce((sum, c) => sum + c.rating, 0) / validRatings.length).toFixed(1) : 0;
         res.json({ totalCourses: myCourses.length, totalEnrollments, totalRevenue: parseFloat(totalRevenue.toFixed(2)), averageRating: parseFloat(averageRating) || 0 });
     } catch (error) {
-        console.error("Error fetching instructor dashboard summary:", error);
+        console.error("[SERVER_LOG] Error fetching instructor dashboard summary:", error);
         res.status(500).json({ message: "Failed to fetch dashboard summary." });
     }
 });
 
 // New Instructor Analytics Endpoints
 app.get('/api/instructor/enrollments', authenticateToken, checkRole(['instructor', 'admin']), async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/instructor/enrollments request received.');
     try {
         const instructorId = req.user.userId;
         const instructorCourses = await Course.find({ instructor: instructorId }, '_id');
@@ -625,12 +704,13 @@ app.get('/api/instructor/enrollments', authenticateToken, checkRole(['instructor
         }));
         res.json(formattedEnrollments);
     } catch (error) {
-        console.error("Error fetching instructor enrollments:", error);
+        console.error("[SERVER_LOG] Error fetching instructor enrollments:", error);
         res.status(500).json({ message: "Failed to fetch instructor enrollments." });
     }
 });
 
 app.get('/api/instructor/reviews', authenticateToken, checkRole(['instructor', 'admin']), async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/instructor/reviews request received.');
     try {
         const instructorId = req.user.userId;
         const instructorCourses = await Course.find({ instructor: instructorId }, '_id');
@@ -657,7 +737,7 @@ app.get('/api/instructor/reviews', authenticateToken, checkRole(['instructor', '
         }));
         res.json(formattedReviews);
     } catch (error) {
-        console.error("Error fetching instructor reviews:", error);
+        console.error("[SERVER_LOG] Error fetching instructor reviews:", error);
         res.status(500).json({ message: "Failed to fetch instructor reviews." });
     }
 });
@@ -665,6 +745,7 @@ app.get('/api/instructor/reviews', authenticateToken, checkRole(['instructor', '
 
 // ADMIN ROUTES
 app.get('/api/admin/users', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/admin/users request received.');
     try {
         const userList = await User.find({}, 'name email role googleId createdAt isBlocked').sort({ createdAt: -1 }); 
         const formattedUsers = userList.map(u => ({ 
@@ -678,12 +759,13 @@ app.get('/api/admin/users', authenticateToken, checkRole(['admin']), async (req,
         }));
         res.json(formattedUsers);
     } catch (error) {
-        console.error("Error fetching user list for admin:", error);
+        console.error("[SERVER_LOG] Error fetching user list for admin:", error);
         res.status(500).json({ message: "Failed to fetch user list." });
     }
 });
 
 app.put('/api/admin/users/:userId/toggle-block', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log(`[SERVER_LOG] PUT /api/admin/users/${req.params.userId}/toggle-block request received.`);
     try {
         const { userId } = req.params;
         const userToUpdate = await User.findById(userId);
@@ -705,7 +787,7 @@ app.put('/api/admin/users/:userId/toggle-block', authenticateToken, checkRole(['
         });
 
     } catch (error) {
-        console.error("Error toggling user block status:", error);
+        console.error("[SERVER_LOG] Error toggling user block status:", error);
         if (error.kind === 'ObjectId') return res.status(400).json({ message: 'Invalid user ID format.' });
         res.status(500).json({ message: 'Server error while updating user block status.' });
     }
@@ -713,6 +795,7 @@ app.put('/api/admin/users/:userId/toggle-block', authenticateToken, checkRole(['
 
 
 app.delete('/api/admin/users/:userId', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log(`[SERVER_LOG] DELETE /api/admin/users/${req.params.userId} request received.`);
     try {
         const { userId } = req.params;
         const userToDelete = await User.findById(userId);
@@ -740,13 +823,14 @@ app.delete('/api/admin/users/:userId', authenticateToken, checkRole(['admin']), 
         res.json({ message: `User ${userToDelete.name} (${userToDelete.email}) and their associated data deleted successfully.` });
 
     } catch (error) {
-        console.error("Error deleting user:", error);
+        console.error("[SERVER_LOG] Error deleting user:", error);
         if (error.kind === 'ObjectId') return res.status(400).json({ message: 'Invalid user ID format.' });
         res.status(500).json({ message: 'Server error while deleting user.' });
     }
 });
 
 app.get('/api/admin/courses', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/admin/courses request received.');
     try {
         const courses = await Course.find({}, 'title instructorName category price rating createdAt').sort({ createdAt: -1 }).lean();
         
@@ -773,12 +857,13 @@ app.get('/api/admin/courses', authenticateToken, checkRole(['admin']), async (re
 
         res.json(formattedCourses);
     } catch (error) {
-        console.error("Error fetching course list for admin:", error);
+        console.error("[SERVER_LOG] Error fetching course list for admin:", error);
         res.status(500).json({ message: "Failed to fetch course list." });
     }
 });
 
 app.delete('/api/admin/courses/:courseId', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log(`[SERVER_LOG] DELETE /api/admin/courses/${req.params.courseId} request received.`);
     try {
         const { courseId } = req.params;
         const courseToDelete = await Course.findById(courseId);
@@ -795,13 +880,14 @@ app.delete('/api/admin/courses/:courseId', authenticateToken, checkRole(['admin'
         res.json({ message: `Course "${courseToDelete.title}" and all associated enrollments, reviews, and certificates deleted successfully.` });
 
     } catch (error) {
-        console.error("Error deleting course:", error);
+        console.error("[SERVER_LOG] Error deleting course:", error);
         if (error.kind === 'ObjectId') return res.status(400).json({ message: 'Invalid course ID format.' });
         res.status(500).json({ message: 'Server error while deleting course.' });
     }
 });
 
 app.get('/api/admin/reviews', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log('[SERVER_LOG] GET /api/admin/reviews request received.');
     try {
         const reviews = await Review.find({})
             .populate('userId', 'name email')
@@ -823,13 +909,14 @@ app.get('/api/admin/reviews', authenticateToken, checkRole(['admin']), async (re
         }));
         res.json(formattedReviews);
     } catch (error) {
-        console.error("Error fetching review list for admin:", error);
+        console.error("[SERVER_LOG] Error fetching review list for admin:", error);
         res.status(500).json({ message: "Failed to fetch review list." });
     }
 });
 
 // Admin Edit Review Text
 app.put('/api/admin/reviews/:reviewId/edit', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log(`[SERVER_LOG] PUT /api/admin/reviews/${req.params.reviewId}/edit request received.`);
     try {
         const { reviewId } = req.params;
         const { reviewText } = req.body;
@@ -847,13 +934,14 @@ app.put('/api/admin/reviews/:reviewId/edit', authenticateToken, checkRole(['admi
 
         res.json({ message: 'Review updated successfully.', review });
     } catch (error) {
-        console.error("Error editing review by admin:", error);
+        console.error("[SERVER_LOG] Error editing review by admin:", error);
         res.status(500).json({ message: 'Failed to edit review.' });
     }
 });
 
 // Admin Toggle Flag for a Review
 app.put('/api/admin/reviews/:reviewId/toggle-flag', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log(`[SERVER_LOG] PUT /api/admin/reviews/${req.params.reviewId}/toggle-flag request received.`);
     try {
         const { reviewId } = req.params;
         const review = await Review.findById(reviewId);
@@ -870,7 +958,7 @@ app.put('/api/admin/reviews/:reviewId/toggle-flag', authenticateToken, checkRole
             review // Send back the updated review
         });
     } catch (error) {
-        console.error("Error toggling review flag by admin:", error);
+        console.error("[SERVER_LOG] Error toggling review flag by admin:", error);
         if (error.kind === 'ObjectId') return res.status(400).json({ message: 'Invalid review ID format.' });
         res.status(500).json({ message: 'Server error while updating review flag status.' });
     }
@@ -878,6 +966,7 @@ app.put('/api/admin/reviews/:reviewId/toggle-flag', authenticateToken, checkRole
 
 
 app.delete('/api/admin/reviews/:reviewId', authenticateToken, checkRole(['admin']), async (req, res) => {
+    console.log(`[SERVER_LOG] DELETE /api/admin/reviews/${req.params.reviewId} request received.`);
     try {
         const { reviewId } = req.params;
         const reviewToDelete = await Review.findById(reviewId);
@@ -901,7 +990,7 @@ app.delete('/api/admin/reviews/:reviewId', authenticateToken, checkRole(['admin'
         res.json({ message: `Review deleted successfully. Course rating updated if applicable.` });
 
     } catch (error) {
-        console.error("Error deleting review:", error);
+        console.error("[SERVER_LOG] Error deleting review:", error);
         if (error.kind === 'ObjectId') return res.status(400).json({ message: 'Invalid review ID format.' });
         res.status(500).json({ message: 'Server error while deleting review.' });
     }
@@ -910,13 +999,37 @@ app.delete('/api/admin/reviews/:reviewId', authenticateToken, checkRole(['admin'
 // The "catchall" handler: for any request that doesn't match an API route,
 // send back the main index.html file from the frontend build.
 app.get('*', (req, res) => {
+  console.log(`[SERVER_LOG] Catchall route hit for: ${req.path}`);
   // Check if the request is not an API call
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    console.log(`[SERVER_LOG] Serving index.html from: ${indexPath}`);
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            console.error('[SERVER_LOG] Error sending index.html:', err);
+            res.status(500).send('Error serving frontend.');
+        }
+    });
   } else {
     // If it's an API route that wasn't matched, send a 404
+    console.log(`[SERVER_LOG] API endpoint not found: ${req.path}`);
     res.status(404).json({ message: 'API endpoint not found' });
   }
 });
 
-app.listen(PORT, () => { console.log(`Backend server on http://localhost:${PORT}`); console.log(`Ensure .env vars set.`); });
+app.listen(PORT, () => { 
+    console.log(`[SERVER_LOG] Backend server listening on port ${PORT}`);
+    console.log(`[SERVER_LOG] Server startup complete. NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log('[SERVER_LOG] Ensure all required environment variables are set in Vercel for production.');
+});
+
+// Global error handler (optional, for unhandled promise rejections, etc.)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[SERVER_LOG] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[SERVER_LOG] Uncaught Exception:', error);
+  // For Vercel, it's often better to let the platform handle restarts, 
+  // but logging is critical. Avoid process.exit here unless you have a specific strategy.
+});
