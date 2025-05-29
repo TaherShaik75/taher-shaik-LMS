@@ -1,12 +1,16 @@
+
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
     // Load .env files from the project root (where vite.config.ts is)
     const env = loadEnv(mode, '.', ''); 
+    // For Render deployment, the base path should typically be root.
+    const base = '/';
+
     return {
       root: 'frontend', // Set the root to the 'frontend' directory
-      base: '/',       // Serve from the root for local production
+      base: base,       // Serve from the root for platforms like Render
       define: {
         // Make environment variables available to frontend code
         // Ensure GEMINI_API_KEY is present in your root .env file if needed by frontend

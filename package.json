@@ -8,12 +8,12 @@
     "start": "NODE_ENV=production node -r dotenv/config backend/server.js",
     "dev:frontend": "vite frontend",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev":"vite",
-    "build":"vite build",
-    "vercel-build": "echo \"Skipping frontend build for Vercel pure backend test\"",
+    "dev": "vite",
+    "build": "vite build",
+    "vercel-build": "npm run build",
     "preview": "vite preview",
-    "predeploy":"npm run build",
-    "deploy":"gh-pages -d dist"
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
     "multer": "^2.0.0",
+    "multer-storage-cloudinary": "^4.0.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "streamifier": "^0.1.1"
