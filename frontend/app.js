@@ -19,7 +19,8 @@ import { renderPaymentPage } from './components/PaymentPage.js';
 
 
 const appContainer = document.getElementById('app-container');
-const API_ORIGIN = 'http://localhost:3001';
+const API_ORIGIN = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin;
+
 
 let authState = {
     isAuthenticated: false,

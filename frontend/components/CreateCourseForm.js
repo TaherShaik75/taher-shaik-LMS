@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-var API_COURSES_URL = 'http://localhost:3001/api/courses';
+// API_COURSES_URL will be constructed dynamically using API_ORIGIN from app.js
 
 let sectionCounter = 0;
 let lessonCounters = {}; 
@@ -268,8 +268,11 @@ export async function handleCreateCourseFormSubmit(formElement) {
         feedbackDiv.className = 'form-feedback error'; return;
     }
 
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_COURSES_URL_DYNAMIC = `${API_ORIGIN}/api/courses`;
+
     try {
-        const response = await fetch(API_COURSES_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+        const response = await fetch(API_COURSES_URL_DYNAMIC, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || `HTTP error ${response.status}`);
         feedbackDiv.textContent = 'Course created successfully!'; feedbackDiv.className = 'form-feedback success';

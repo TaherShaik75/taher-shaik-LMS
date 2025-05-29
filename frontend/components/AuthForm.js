@@ -3,7 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-var API_BASE_URL = 'http://localhost:3001/api/auth';
+// API_BASE_URL will be derived from API_ORIGIN in app.js for actual fetch calls.
+// This constant is primarily for constructing the Google OAuth URL.
+const GOOGLE_AUTH_ENDPOINT_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin) + '/api/auth/google';
+
 
 export function renderAuthForm(type) {
     const isLogin = type === 'login';
@@ -46,7 +49,7 @@ export function renderAuthForm(type) {
                 <a href="${switchLinkHref}">${switchLinkText}</a>
             </p>
             <div class="divider">OR</div>
-            <a href="http://localhost:3001/api/auth/google" id="google-oauth-btn-link" class="button-like secondary" style="display:flex; align-items:center; justify-content:center; text-decoration:none; background-color: #db4437;" type="button">
+            <a href="${GOOGLE_AUTH_ENDPOINT_BASE}" id="google-oauth-btn-link" class="button-like secondary" style="display:flex; align-items:center; justify-content:center; text-decoration:none; background-color: #db4437;" type="button">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" aria-hidden="true" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;">
                 Sign ${isLogin ? 'in' : 'up'} with Google
             </a>
@@ -66,7 +69,11 @@ export async function handleAuthFormSubmit(formElement, type) {
     if (data.password.length < 6) {
         feedbackDiv.textContent = 'Password must be at least 6 characters long.'; feedbackDiv.className = 'form-feedback error'; return;
     }
-    const endpoint = type === 'login' ? `${API_BASE_URL}/login` : `${API_BASE_URL}/signup`;
+
+    // Get API_ORIGIN from global scope (defined in app.js)
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const endpoint = type === 'login' ? `${API_ORIGIN}/api/auth/login` : `${API_ORIGIN}/api/auth/signup`;
+
     try {
         const response = await fetch(endpoint, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),

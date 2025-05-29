@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-var API_BASE_URL_DASHBOARD = 'http://localhost:3001/api/dashboard';
+// API_BASE_URL_DASHBOARD will be constructed dynamically using API_ORIGIN from app.js
 
 async function fetchDashboardData(endpoint, token) {
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_DASHBOARD_URL_DYNAMIC = `${API_ORIGIN}/api/dashboard`;
     try {
-        const response = await fetch(`${API_BASE_URL_DASHBOARD}${endpoint}`, {
+        const response = await fetch(`${API_DASHBOARD_URL_DYNAMIC}${endpoint}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         });

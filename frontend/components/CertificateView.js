@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-const API_COURSES_URL = 'http://localhost:3001/api/courses'; 
+// API_COURSES_URL will be constructed dynamically using API_ORIGIN from app.js
 
 export async function renderCertificateView(courseIdFromUrl, userIdFromUrl, authState) {
     let courseName = 'this course'; 
@@ -25,13 +25,15 @@ export async function renderCertificateView(courseIdFromUrl, userIdFromUrl, auth
         console.warn(`Certificate view attempt for user ${userIdFromUrl} by user ${authState.user.userId}. Displaying generic name if not owner/admin.`);
     }
 
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_COURSES_URL_DYNAMIC = `${API_ORIGIN}/api/courses`;
 
     try {
         const headers = {};
         if (authState.token) headers['Authorization'] = `Bearer ${authState.token}`;
 
         // Fetch course details
-        const courseResponse = await fetch(`${API_COURSES_URL}/${courseIdFromUrl}`, { headers }); 
+        const courseResponse = await fetch(`${API_COURSES_URL_DYNAMIC}/${courseIdFromUrl}`, { headers }); 
         if (!courseResponse.ok) {
             const errData = await courseResponse.json().catch(() => ({}));
             throw new Error(errData.message || `Could not fetch course details (status ${courseResponse.status})`);

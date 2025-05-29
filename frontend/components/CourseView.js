@@ -4,7 +4,7 @@
 */
 import { renderReviewForm } from './ReviewForm.js';
 
-const API_COURSE_DETAIL_URL = 'http://localhost:3001/api/courses';
+// API_COURSE_DETAIL_URL will be constructed dynamically using API_ORIGIN from app.js
 
 export async function renderCourseView(courseId, authState) {
     let courseData = null;
@@ -12,11 +12,15 @@ export async function renderCourseView(courseId, authState) {
     let error = null;
     const token = authState.isAuthenticated ? authState.token : null;
 
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_COURSE_DETAIL_URL_DYNAMIC = `${API_ORIGIN}/api/courses`;
+
+
     try {
         const headers = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const response = await fetch(`${API_COURSE_DETAIL_URL}/${courseId}`, { headers });
+        const response = await fetch(`${API_COURSE_DETAIL_URL_DYNAMIC}/${courseId}`, { headers });
         if (!response.ok) {
             if (response.status === 404) throw new Error('Course not found.');
             const errData = await response.json().catch(() => ({ message: 'Failed to parse server error.'}));

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-const API_COURSES_URL = 'http://localhost:3001/api/courses';
+// API_COURSES_URL will be constructed dynamically using API_ORIGIN from app.js
 
 let editSectionCounter = 0;
 let editLessonCounters = {};
@@ -159,11 +159,15 @@ export async function renderEditCourseForm(courseId, authState) {
     let isLoading = true;
     let error = null;
 
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_COURSES_URL_DYNAMIC = `${API_ORIGIN}/api/courses`;
+
+
     try {
         const headers = {};
         if(authState.token) headers['Authorization'] = `Bearer ${authState.token}`;
 
-        const response = await fetch(`${API_COURSES_URL}/${courseId}`, { headers });
+        const response = await fetch(`${API_COURSES_URL_DYNAMIC}/${courseId}`, { headers });
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
         courseData = await response.json();
         if (courseData.instructor !== authState.user.userId && authState.user.role !== 'admin') {
@@ -301,8 +305,11 @@ export async function handleEditCourseFormSubmit(formElement, courseId) {
         feedbackDiv.className = 'form-feedback error'; return;
     }
 
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_COURSES_URL_DYNAMIC = `${API_ORIGIN}/api/courses`;
+
     try {
-        const response = await fetch(`${API_COURSES_URL}/${courseId}`, {
+        const response = await fetch(`${API_COURSES_URL_DYNAMIC}/${courseId}`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData

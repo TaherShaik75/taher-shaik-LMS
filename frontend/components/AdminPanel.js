@@ -3,11 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-const API_ADMIN_URL = 'http://localhost:3001/api/admin';
+// API_ADMIN_URL will be constructed dynamically using API_ORIGIN from app.js
 
 async function fetchAdminData(endpoint, token) {
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_ADMIN_URL_DYNAMIC = `${API_ORIGIN}/api/admin`;
+
     try {
-        const response = await fetch(`${API_ADMIN_URL}${endpoint}`, {
+        const response = await fetch(`${API_ADMIN_URL_DYNAMIC}${endpoint}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {

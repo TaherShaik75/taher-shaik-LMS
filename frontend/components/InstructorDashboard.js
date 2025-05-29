@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-var API_INSTRUCTOR_URL = 'http://localhost:3001/api/instructor';
+// API_INSTRUCTOR_URL will be constructed dynamically using API_ORIGIN from app.js
 
 async function fetchInstructorData(endpoint, token) {
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_INSTRUCTOR_URL_DYNAMIC = `${API_ORIGIN}/api/instructor`;
     try {
-        const response = await fetch(`${API_INSTRUCTOR_URL}${endpoint}`, {
+        const response = await fetch(`${API_INSTRUCTOR_URL_DYNAMIC}${endpoint}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {

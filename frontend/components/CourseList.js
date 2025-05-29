@@ -4,7 +4,7 @@
 */
 import { renderCourseCard } from './CourseCard.js';
 
-var API_COURSES_URL = 'http://localhost:3001/api/courses';
+// API_COURSES_URL will be constructed dynamically using API_ORIGIN from app.js
 
 export async function renderCourseList(searchParams = new URLSearchParams(), authState) {
     let courses = [];
@@ -15,8 +15,11 @@ export async function renderCourseList(searchParams = new URLSearchParams(), aut
     if (searchParams.get('category')) queryParams.set('category', searchParams.get('category'));
     if (searchParams.get('price')) queryParams.set('price', searchParams.get('price'));
     
+    const API_ORIGIN = window.API_ORIGIN || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : window.location.origin);
+    const API_COURSES_URL_DYNAMIC = `${API_ORIGIN}/api/courses`;
+
     try {
-        const response = await fetch(`${API_COURSES_URL}?${queryParams.toString()}`);
+        const response = await fetch(`${API_COURSES_URL_DYNAMIC}?${queryParams.toString()}`);
         if (!response.ok) {
             const errData = await response.json().catch(()=>({})); 
             throw new Error(errData.message || `HTTP error ${response.status}`);
