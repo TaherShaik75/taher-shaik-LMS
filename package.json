@@ -1,3 +1,4 @@
+
 {
   "name": "skillsharehub",
   "homepage": "https://TaherShaik75.github.io/taher-shaik-LMS/",
@@ -5,15 +6,15 @@
   "description": "A full-stack application where users can create, explore, and enroll in skill-based courses.",
   "main": "backend/server.js",
   "scripts": {
-    "start": "NODE_ENV=production node -r dotenv/config backend/server.js",
+    "start": "NODE_ENV=production node backend/server.js",
     "dev:frontend": "vite frontend",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "vite",
-    "build": "vite build",
+    "dev":"vite",
+    "build":"vite build",
     "vercel-build": "npm run build",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "predeploy":"npm run build",
+    "deploy":"gh-pages -d dist"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

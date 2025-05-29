@@ -1,4 +1,6 @@
 
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }); // Load .env from project root
+
 // backend/server.js
 console.log('[SERVER_LOG] Attempting to load server.js module...');
 console.log('[SERVER_LOG] NODE_ENV:', process.env.NODE_ENV);
