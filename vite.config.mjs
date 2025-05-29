@@ -3,13 +3,14 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
-    // Load .env files from the project root (where vite.config.ts is)
+    // Load .env files from the project root (where vite.config.mjs is)
     const env = loadEnv(mode, '.', ''); 
 
     // Base path logic for deployment
     // From your package.json: "homepage": "https://TaherShaik75.github.io/taher-shaik-LMS/"
     const ghPagesRepoName = '/taher-shaik-LMS/'; 
-    const base = mode === 'production' ? ghPagesRepoName : '/';
+    // const base = mode === 'production' ? ghPagesRepoName : '/'; // Use this for GitHub Pages
+    const base = '/'; // Use this for Render or other root deployments
 
     return {
       root: 'frontend', // Set the root to the 'frontend' directory
