@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }); // Load .env from project root
 // backend/server.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
